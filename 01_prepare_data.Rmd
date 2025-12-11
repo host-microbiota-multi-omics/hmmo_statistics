@@ -1,0 +1,92 @@
+# Prepare data
+
+## Sample metadata
+```{r}
+
+```
+
+## Genome metadata
+We are preparing a table with ou MAG catalogue information, by combining taxonomy (from GTDB-Tk) with genome characteristics.
+```{r prepare_genome_metadata, warning=FALSE, comments="", message=FALSE}
+# Load genome information and clean it
+genome_info <- read_csv("resources/genomeInfo.csv") %>% # Read genome info file where you can find the completeness,contamination and length of our MAGs
+  select(-N50) %>% # Drop N50 column (not needed for downstream analysis here)
+  mutate(genome = str_replace(genome, "\\.fa$", "")) # Remove ".fa" suffix from genome names for consistency
+
+# Load GTDB-Tk genome taxonomy summary
+genome_metadata <- read_tsv("resources/gtdbtk.bac120.summary.tsv")%>%
+  dplyr::rename(genome=1) %>% # Rename first column to "genome" to match genome_info
+  mutate(classification = str_replace_all(classification, ".__", "")) %>% # Remove prefix from taxonomy labels
+  separate(col = classification, sep = ";", into = c("domain", "phylum", "class", "order", "family", "genus", "species")) %>% # Split taxonomy string into individual taxonomic levels
+  select(1:8) %>% # Keep genome + taxonomy columns
+  left_join(., genome_info, by="genome") # Add additional genome info (completeness,contamination and length) from genome_info
+```
+
+## Read counts
+This table contains the number of sequencing reads that map to each genome per sample. It’s the raw input for abundance calculations.
+```{r load_reads, warning=FALSE, comments="", message=FALSE}
+# Load raw read counts for each genome in each sample
+counts_raw <- read_tsv("resources/coverm_read_counts.tsv")
+```
+
+## Genome counts
+```{r prepare_genome_counts, warning=FALSE, comments="", message=FALSE}
+min_coverage = 0.3 # Minimum fraction of genome coverage to consider the genome "present" in a sample
+
+# Load covered bases per genome and convert to counts. Ensures only sufficiently covered genomes are considered to reduce noise from spurious reads
+read_counts_filt <- read_tsv("resources/coverm_covered_bases.tsv") %>%
+  mutate(across(where(is.numeric), ~ ifelse(. > min_coverage, 1, 0))) %>% # Apply coverage threshold: 1 if genome sufficiently covered, 0 if not
+  arrange(match(Genome,counts_raw$Genome)) %>% # Ensure genomes are in the same order as counts_raw
+  mutate(across(-1, ~ . * counts_raw[[cur_column()]])) # Multiply presence/absence by raw read counts
+
+# Normalise genome counts by genome length. Dividing by genome length avoids bias from large genomes naturally having more reads.
+genome_counts_filt <- read_counts_filt %>%
+  arrange(match(Genome,genome_metadata$genome)) %>% 
+  mutate(across(where(is.numeric), ~ . / (genome_metadata$length / read_length) ))%>%
+  select_if(~ !is.numeric(.) || sum(.) != 0)%>% #Keeps samples where the sum of reads across all MAGs is greater than 0.
+  filter(rowSums(across(where(is.numeric)))!=0) #Keeps rows where the sum of reads across all samples is greater than 0.
+
+genome_metadata <- genome_metadata %>% 
+  filter(genome %in% genome_counts_filt$Genome) # Ensure genomes filtered out from genome_counts_filt are also removed from genome_metadata
+```
+
+## Genome tree
+Phylogenetic trees allow us to visualize evolutionary relationships among genomes. Keeping only relevant MAGs ensures consistency between tree and abundance/metadata tables.
+```{r load_genome_tree, warning=FALSE, comments="", message=FALSE}
+# Load genome phylogenetic tree
+genome_tree <- read_tree("resources/gtdbtk.backbone.bac120.classify.tree")
+
+# Keep only the tips corresponding to MAGs in our dataset
+genome_tree <- keep.tip(genome_tree, tip=genome_metadata$genome) # keep only MAG tips
+```
+
+## Prepare color scheme
+This allows consistent coloring of taxa in visualizations, making plots easier to interpret.
+```{r get_ehi_colors_skin, warning=FALSE, comments="", message=FALSE}
+phylum_colors <- read_tsv(
+  "https://raw.githubusercontent.com/earthhologenome/EHI_taxonomy_colour/main/ehi_phylum_colors.tsv") %>%
+  mutate_at(vars(phylum), ~ str_replace(., "[dpcofgs]__", "")) %>% # Clean taxonomy prefix
+  right_join(genome_metadata, by = join_by(phylum == phylum)) %>% # Keep only phyla in our dataset
+  arrange(match(genome, genome_tree$tip.label)) %>% # Align colors with tree tips
+  select(phylum, colors) %>%
+  unique() %>%
+  arrange(phylum) %>%
+  pull(colors, name = phylum)
+```
+
+# Wrap working objects
+All working objects are wrapped into a single Rdata object to facilitate downstream usage.
+```{r savedata, comment="", message=FALSE, warning=FALSE}
+save(sample_metadata,
+  genome_metadata,
+  genome_counts_filt,
+#  preprocess_info,
+  genome_tree,
+#  genome_gifts,
+#  microbial_fraction,
+  phylum_colors,
+  file = "resources/metagenomics/data.Rdata")
+```
+Saving as .Rdata is convenient for large projects: all processed data can be loaded quickly without repeating preprocessing steps. It also ensures reproducibility.
+
+
