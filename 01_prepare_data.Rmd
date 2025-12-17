@@ -2,6 +2,7 @@
 
 ```{r prepare_data_libraries}
 library(tidyverse)
+library(phyloseq)
 ```
 
 ## Genome metadata
@@ -63,11 +64,15 @@ genome_counts_filt <- read_counts_filt %>%
 
 ## Genome tree
 
-
 ```{r load_genome_tree, warning=FALSE, comments="", message=FALSE}
 genome_tree <- read_tree("resources/gtdbtk.backbone.bac120.classify.tree")
 
 genome_tree <- keep.tip(genome_tree, tip=genome_metadata$genome)
+```
+
+## Gene annotation
+```{r annotation, warning=FALSE, comments="", message=FALSE}
+gene_annotations <- read_tsv("resources/kegg_merged.tsv")
 ```
 
 ## Prepare color scheme
@@ -88,13 +93,10 @@ phylum_colors <- read_tsv(
 
 ```{r savedata, comment="", message=FALSE, warning=FALSE}
 save(
-  #sample_metadata,
   genome_metadata,
   genome_counts_filt,
-#  preprocess_info,
+  gene_annotations,
   genome_tree,
-#  genome_gifts,
-#  microbial_fraction,
   phylum_colors,
   file = "resources/metagenomics.Rdata")
 ```
