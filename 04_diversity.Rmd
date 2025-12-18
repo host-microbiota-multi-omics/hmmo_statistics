@@ -1,0 +1,154 @@
+# Diversity
+
+## Load the libraries
+```{r composition_libraries, comment="", message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tinytable)
+library(hilldiv2)
+library(ggrepel)
+```
+
+## Load and filter the data
+
+```{r load_data, comment="", message=FALSE, warning=FALSE}
+load("resources/metagenomics.Rdata")
+```
+
+```{r filter_data, comment="", message=FALSE, warning=FALSE}
+genome_counts_filt <- genome_counts_filt %>%
+  select_if(~ !is.numeric(.) || sum(.) != 0) %>%
+  filter(rowSums(across(where(is.numeric)))!=0)
+
+genome_metadata <- genome_metadata %>% 
+  filter(genome %in% genome_counts_filt$genome)
+```
+
+## Alpha diversity
+
+**Calculate Hill numbers**
+
+```{r alpha, comment="", message=FALSE, warning=FALSE}
+richness <- genome_counts_filt %>%
+  column_to_rownames(var = "genome") %>%
+  dplyr::select(where(~ !all(. == 0))) %>%
+  hilldiv(., q = 0) %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::rename(richness = 1) %>%
+  rownames_to_column(var = "sample")
+
+neutral <- genome_counts_filt %>%
+  column_to_rownames(var = "genome") %>%
+  dplyr::select(where(~ !all(. == 0))) %>%
+  hilldiv(., q = 1) %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::rename(neutral = 1) %>%
+  rownames_to_column(var = "sample")
+
+phylogenetic <- genome_counts_filt %>%
+  column_to_rownames(var = "genome") %>%
+  dplyr::select(where(~ !all(. == 0))) %>%
+  hilldiv(., q = 1, tree = genome_tree) %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::rename(phylogenetic = 1) %>%
+  rownames_to_column(var = "sample")
+```
+
+**Merge all metrics**
+```{r alpha_metrics, comment="", message=FALSE, warning=FALSE}
+alpha_div <- richness %>%
+  full_join(neutral, by = join_by(sample == sample)) %>%
+  full_join(phylogenetic, by = join_by(sample == sample))
+```
+
+**Plot alpha diversities**
+```{r alpha_plot, comment="", message=FALSE, warning=FALSE, fig.height=5, fig.width=10, fig.fullwidth=TRUE}
+alpha_div %>%
+  pivot_longer(-sample, names_to = "metric", values_to = "value") %>%
+  mutate(metric=factor(metric,levels=c("richness","neutral","phylogenetic"))) %>%
+  ggplot(aes(y = value, x = metric, fill = metric)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(alpha = 0.5) +
+  theme_classic() +
+  theme(
+    strip.background = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+  )
+```
+
+## Beta diversity
+
+**Calculate the beta diversities for different metrics**
+```{r beta, comment="", message=FALSE, warning=FALSE}
+beta_q0n <- genome_counts_filt %>%
+  column_to_rownames(., "genome") %>%
+  hillpair(., q = 0)
+
+beta_q1n <- genome_counts_filt %>%
+  column_to_rownames(., "genome") %>%
+  hillpair(., q = 1)
+
+beta_q1p <- genome_counts_filt %>%
+  column_to_rownames(., "genome") %>%
+  hillpair(., q = 1, tree = genome_tree)
+```
+
+**Plot richness metric**
+```{r beta_plot, comment="", message=FALSE, warning=FALSE, fig.height=5, fig.width=10, fig.fullwidth=TRUE}
+beta_q0n$S %>%
+  vegan::metaMDS(., trymax = 500, k = 2, verbosity = FALSE, trace=FALSE) %>%
+  vegan::scores() %>%
+  as_tibble(., rownames = "sample") %>%
+  mutate(x_cen = mean(NMDS1, na.rm = TRUE)) %>%
+  mutate(y_cen = mean(NMDS2, na.rm = TRUE)) %>%
+  ungroup() %>%
+  ggplot(aes(x = NMDS1, y = NMDS2, color=sample)) +
+    geom_point(size = 4) +
+    theme_classic() +
+    theme(
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.title = element_text(size = 14, face = "bold"),
+      axis.text = element_text(face = "bold", size = 18),
+      panel.background = element_blank(),
+      axis.line = element_line(size = 0.5, linetype = "solid", colour = "black"),
+      legend.text = element_text(size = 10),
+      legend.title = element_text(size = 12),
+      legend.position = "right", legend.box = "vertical"
+    ) # Add sample names
+```
+
+## Exercise:
+
+**1) Modify the alpha-diversity plot code to group samples according to your study design. To do this, you will need:**
+
+    i) Join the sample metadata to the alpha_div table.
+    ii) Group the samples by the variable of interest in ggplot.
+    iii) Display the diversity values faceted by diversity metric using facet_wrap().
+    Note: This can only be completed once you have the sample metadata.
+
+```{r alpha_plot_color, comment="", message=FALSE, warning=FALSE, fig.height=5, fig.width=10, fig.fullwidth=TRUE, eval=FALSE}
+alpha_div %>%
+  pivot_longer(-sample, names_to = "metric", values_to = "value") %>%
+  mutate(metric=factor(metric,levels=c("richness","neutral","phylogenetic"))) %>%
+  ggplot(aes(y = value, x = metric, fill = metric)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(alpha = 0.5) +
+  theme_classic() +
+  theme(
+    strip.background = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+  )
+```
+
+**2) Create beta-diversity plots using the remaining metrics (neutral and phylogenetic).**
+
+**3) Color the plots according to the groups defined in the sample metadata rather than by individual samples.**
+
+    Note: This can only be completed once you have the sample metadata.
+
+

@@ -1,0 +1,121 @@
+# Community composition
+
+## Load the libraries
+```{r composition_libraries, comment="", message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tinytable)
+```
+
+## Load and filter the data
+
+```{r load_data, comment="", message=FALSE, warning=FALSE}
+load("resources/metagenomics.Rdata")
+```
+
+```{r filter_data, comment="", message=FALSE, warning=FALSE}
+genome_counts_filt <- genome_counts_filt %>%
+  select_if(~ !is.numeric(.) || sum(.) != 0) %>%
+  filter(rowSums(across(where(is.numeric)))!=0)
+
+genome_metadata <- genome_metadata %>% 
+  filter(genome %in% genome_counts_filt$genome)
+```
+
+## Stacked barplot
+```{r taxonomy_barplot, fig.height=6, fig.width=10, fig.fullwidth=TRUE}
+genome_counts_filt %>%
+  mutate(across(-genome, ~ . / sum(.))) %>%
+  pivot_longer(-genome, names_to = "sample", values_to = "count") %>% 
+  left_join(., genome_metadata, by = join_by(genome == genome)) %>% 
+  ggplot(., aes(x = sample, y = count, fill = phylum, group = phylum)) + 
+  geom_bar(stat = "identity", colour = "white", linewidth = 0.1) + 
+  scale_fill_manual(values = phylum_colors) +
+  guides(fill = guide_legend(ncol = 1)) +
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1), 
+        axis.title.x = element_text(size = 12, ),
+        panel.background = element_blank(), 
+        axis.line = element_line(linewidth = 0.5, linetype = "solid", colour = "black"),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 14)) +
+  labs(fill = "Phylum", y = "Relative abundance", x = "Samples")
+```
+
+## Phylum relative abundances
+```{r phylum_relatives, comment="", message=FALSE, warning=FALSE}
+phylum_summary <- genome_counts_filt %>%
+  mutate_at(vars(-genome),~./sum(.)) %>%
+  pivot_longer(-genome, names_to = "sample", values_to = "count") %>%
+  left_join(genome_metadata, by = join_by(genome == genome)) %>%
+  group_by(sample,phylum) %>%
+  summarise(relabun=sum(count))
+
+phylum_summary %>%
+  group_by(phylum) %>%
+  summarise(mean=mean(relabun)*100,sd=sd(relabun)*100) %>% #*100
+  arrange(-mean) %>% 
+  tt()
+```
+
+## Taxonomy overview
+
+**Number of Bacteria phyla**
+```{r phyla, comment="", message=FALSE, warning=FALSE}
+genome_metadata %>% 
+  filter(domain == "Bacteria") %>%
+  dplyr::select(phylum) %>%
+  unique() %>%
+  pull() %>%
+  length()%>% 
+  cat()
+```
+
+**Number of family phyla**
+```{r family, comment="", message=FALSE, warning=FALSE}
+genome_metadata %>% 
+  dplyr::select(family) %>%
+  unique() %>%
+  pull() %>%
+  length()%>% 
+  cat()
+```
+
+
+## Exercises:
+
+### 1) How many species are represented in your MAG catalogue?
+```{r}
+
+```
+
+
+### 2) How many families within the class Clostridia are represented in your MAG catalogue?
+```{r}
+
+```
+
+
+### 3) What are the names of the species identified within the class Clostridia?
+```{r}
+
+```
+
+
+### 4) Identify the phyla that are statistically different between groups.
+
+    Use the draft code provided and make sure to:
+     i) join the sample_metadata to your abundance table
+     ii) specify the appropriate grouping variable from the sample metadata when performing the Wilcoxon test.
+     iii) filter the results to retain only phyla that are statistically significant.
+     Note: This can only be completed once you have the sample metadata.
+   
+```{r phylum_statistics, warning=FALSE, comments="", message=FALSE, eval=FALSE}
+phylum_summary %>% 
+  left_join(., sample_metadata, by="sample") %>%
+  select(-sample) %>% 
+  group_by(trait) %>%
+  summarise(p_value = wilcox.test(relabun ~ X)$p.value) %>% #X needs to be defined
+  mutate(p_adjust=p.adjust(p_value, method="BH")) 
+# filter the results to retain only phyla that are statistically significant
+```
+
+

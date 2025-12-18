@@ -1,6 +1,6 @@
 # Prepare data
 
-```{r prepare_data_libraries}
+```{r prepare_data_libraries, warning=FALSE, comments="", message=FALSE}
 library(tidyverse)
 library(phyloseq)
 ```

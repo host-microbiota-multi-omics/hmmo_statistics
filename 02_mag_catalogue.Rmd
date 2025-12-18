@@ -1,0 +1,186 @@
+# MAG catalogue
+
+## Load the libraries
+```{r catalogue_libraries, comment="", message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggtree)
+library(phytools)
+library(ggnewscale)
+library(ggtreeExtra)
+library(tinytable)
+```
+
+## Load the data and filter
+
+```{r load_data_catalogue, comment="", message=FALSE, warning=FALSE}
+load("resources/metagenomics.Rdata")
+```
+
+```{r filter_cat_data, comment="", message=FALSE, warning=FALSE}
+genome_counts_filt <- genome_counts_filt %>%
+  select(where(~ !is.numeric(.) || sum(.) != 0)) %>%
+  filter(rowSums(across(where(is.numeric)))!=0)
+
+genome_metadata <- genome_metadata %>% 
+  filter(genome %in% genome_counts_filt$genome) %>%
+   mutate(length_mb = round(length / 1e6, 2)) %>%
+  select(-length)
+```
+
+## Genome phylogeny
+
+```{r genome_phylogeny, comment="", message=FALSE, warning=FALSE, results='hide', fig.height=8, fig.width=12, fig.fullwidth=TRUE}
+phylum_info <- genome_metadata %>%
+  arrange(match(genome, genome_tree$tip.label)) %>%
+  select(genome, phylum) %>%
+  mutate(phylum = factor(phylum, levels = unique(phylum))) %>%
+  column_to_rownames(var = "genome")
+
+# Generate  basal tree
+circular_tree <- force.ultrametric(genome_tree, method="extend") %>% # extend to ultrametric for the sake of visualisation
+  ggtree(., layout="fan", open.angle=10, size=0.5)
+
+# Add phylum ring
+circular_tree <- gheatmap(circular_tree, phylum_info, offset=0.55, width=0.1, colnames=FALSE) +
+  scale_fill_manual(values=phylum_colors) +
+  geom_tiplab2(size=2, hjust=-0.1) +
+  theme(plot.margin = margin(0, 0, 0, 0), panel.margin = margin(0, 0, 0, 0))+
+  labs(fill = "Phylum")
+
+# Add completeness ring
+circular_tree <- circular_tree +
+  new_scale_fill() +
+  scale_fill_gradient(low = "#d1f4ba", high = "#f4baba") +
+  geom_fruit(
+    data=genome_metadata,
+    geom=geom_bar,
+    mapping = aes(x=completeness, y=genome, fill=contamination),
+    offset = 0.55,
+    pwidth = 0.1,
+    orientation="y",
+    stat="identity") +
+  labs(fill = "Genome quality")
+
+# Add genome-size ring
+circular_tree <-  circular_tree +
+        new_scale_fill() +
+        scale_fill_manual(values = "#cccccc") +
+        geom_fruit(
+             data=genome_metadata,
+             geom=geom_bar,
+             mapping = aes(x=length_mb, y=genome),
+                 offset = 0.05,
+                 orientation="y",
+         stat="identity")
+
+# Add text
+circular_tree <- circular_tree + 
+  new_scale_fill() +
+  annotate('text', x=2.5, y=0, label='Phylum', family='sans', size=4, hjust = 0.5) +
+  annotate('text', x=2.8, y=0, label='Genome quality', family='sans', size=4, hjust = 0.35)+
+  annotate('text', x=3.1, y=0, label='Genome size', family='sans', size=4, hjust = 0.5)
+
+#Plot circular tree
+circular_tree %>% open_tree(30) %>% rotate_tree(90)
+
+```
+
+## Overview
+
+### Phylum of the MAGs
+
+```{r genome_taxonomy_bacteria, message=FALSE, warning=FALSE,}
+tax_mag <- genome_metadata %>% 
+  group_by(phylum) %>%
+  summarise(mag_n=n()) 
+
+tax_mag %>%
+  mutate(percetage_mag=round(mag_n*100/sum(mag_n), 2)) %>% 
+  arrange(-percetage_mag) %>% 
+  tt()
+```
+
+### MAG size (MB)
+
+**Histogram: Genome size and Number of MAGs**
+```{r}
+ggplot(genome_metadata, aes(length_mb)) +
+  geom_histogram(bins = 30) +
+  theme_classic() +
+  labs(x = "Genome size (Mb)", y = "Number of MAGs")
+```
+
+**MAGs arrange by size (MB)**
+
+```{r mag_size_all, message=FALSE, warning=FALSE}
+genome_metadata %>% 
+  arrange(-length_mb) %>% 
+  slice_head(n = 5) %>% 
+  select(species,length_mb) %>% 
+  tt()
+```
+
+**MAG average size (MB)**
+
+```{r mag_size_mean, message=FALSE, warning=FALSE}
+genome_metadata$length_mb %>% 
+  mean()
+
+genome_metadata$length_mb %>% 
+  sd() 
+```
+
+**Minimum MAG size (MB)**
+
+```{r mag_size_min, message=FALSE, warning=FALSE}
+genome_metadata %>% 
+  filter(length_mb==min(length_mb)) %>% 
+  select(phylum, family, species, length_mb) %>% 
+  tt()
+```
+
+### Contamination and Completeness
+
+```{r mag_comp_conta, message=FALSE, warning=FALSE}
+genome_metadata %>%
+  select(c(genome, domain, phylum, completeness, contamination, length_mb)) %>%
+  arrange(match(genome, rev(genome_tree$tip.label))) %>% #sort MAGs according to phylogenetic tree
+  ggplot(aes(
+    x = completeness,
+    y = contamination,
+    size = length_mb,
+    color = phylum
+  )) +
+  geom_point(alpha = 0.7) +
+  ylim(c(10, 0)) +
+  scale_color_manual(values = phylum_colors) +
+  labs(y = "Contamination", x = "Completeness") +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+# Exercises: 
+
+### 1) What is the maximum size of MAG (MB)? To which species does it belong?
+```{r}
+
+```
+
+
+### 2) What are the average contamination and completeness values across all MAGs?
+```{r}
+
+```
+
+
+### 3) What is the MAG with the highest contamination?
+```{r}
+
+```
+
+
+### 4) What is the MAG with the lowest completeness?
+```{r}
+
+```
+
