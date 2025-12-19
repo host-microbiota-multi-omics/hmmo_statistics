@@ -81,7 +81,7 @@ circular_tree <- circular_tree +
   annotate('text', x=3.1, y=0, label='Genome size', family='sans', size=4, hjust = 0.5)
 
 #Plot circular tree
-circular_tree %>% open_tree(30) %>% rotate_tree(90)
+tree <- circular_tree %>% open_tree(30) %>% rotate_tree(90)
 
 ```
 
@@ -91,12 +91,12 @@ circular_tree %>% open_tree(30) %>% rotate_tree(90)
 
 ```{r genome_taxonomy_bacteria, message=FALSE, warning=FALSE,}
 tax_mag <- genome_metadata %>% 
-  group_by(phylum) %>%
+  group_by(phylum,family) %>%
   summarise(mag_n=n()) 
 
 tax_mag %>%
   mutate(percetage_mag=round(mag_n*100/sum(mag_n), 2)) %>% 
-  arrange(-percetage_mag) %>% 
+  arrange(-mag_n) %>% 
   tt()
 ```
 
@@ -142,7 +142,7 @@ genome_metadata %>%
 ### Contamination and Completeness
 
 ```{r mag_comp_conta, message=FALSE, warning=FALSE}
-genome_metadata %>%
+plot <- genome_metadata %>%
   select(c(genome, domain, phylum, completeness, contamination, length_mb)) %>%
   arrange(match(genome, rev(genome_tree$tip.label))) %>% #sort MAGs according to phylogenetic tree
   ggplot(aes(
@@ -157,6 +157,8 @@ genome_metadata %>%
   labs(y = "Contamination", x = "Completeness") +
   theme_classic() +
   theme(legend.position = "none")
+
+plot
 ```
 
 # Exercises: 

@@ -32,6 +32,7 @@ genome_counts_filt %>%
   scale_fill_manual(values = phylum_colors) +
   guides(fill = guide_legend(ncol = 1)) +
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1), 
+        axis.text.y = element_text(size = 20),
         axis.title.x = element_text(size = 12, ),
         panel.background = element_blank(), 
         axis.line = element_line(linewidth = 0.5, linetype = "solid", colour = "black"),
@@ -51,7 +52,7 @@ phylum_summary <- genome_counts_filt %>%
 
 phylum_summary %>%
   group_by(phylum) %>%
-  summarise(mean=mean(relabun)*100,sd=sd(relabun)*100) %>% #*100
+  summarise(mean=mean(relabun)*100,sd=sd(relabun)*100) %>%
   arrange(-mean) %>% 
   tt()
 ```
@@ -72,7 +73,7 @@ genome_metadata %>%
 **Number of family phyla**
 ```{r family, comment="", message=FALSE, warning=FALSE}
 genome_metadata %>% 
-  dplyr::select(family) %>%
+  dplyr::select(species) %>%
   unique() %>%
   pull() %>%
   length()%>% 

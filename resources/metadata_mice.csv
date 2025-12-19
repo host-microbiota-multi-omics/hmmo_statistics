@@ -1,0 +1,13 @@
+﻿sample,animal_id,species_id,timepoint,temperature
+Sample1,Animal1,apodemus_sylvaticus,T1,optimal
+Sample2,Animal2,apodemus_sylvaticus,T1,optimal
+Sample3,Animal3,apodemus_sylvaticus,T1,optimal
+Sample4,Animal4,apodemus_sylvaticus,T1,optimal
+Sample5,Animal5,apodemus_sylvaticus,T1,optimal
+Sample6,Animal6,apodemus_sylvaticus,T1,optimal
+Sample7,Animal1,apodemus_sylvaticus,T2,optimal
+Sample8,Animal2,apodemus_sylvaticus,T2,optimal
+Sample9,Animal3,apodemus_sylvaticus,T2,optimal
+Sample10,Animal4,apodemus_sylvaticus,T2,cold
+Sample11,Animal5,apodemus_sylvaticus,T2,cold
+Sample12,Animal6,apodemus_sylvaticus,T2,cold

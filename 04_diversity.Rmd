@@ -118,7 +118,7 @@ beta_q0n$S %>%
       legend.text = element_text(size = 10),
       legend.title = element_text(size = 12),
       legend.position = "right", legend.box = "vertical"
-    ) # Add sample names
+    )
 ```
 
 ## Exercise:
@@ -146,9 +146,15 @@ alpha_div %>%
 ```
 
 **2) Create beta-diversity plots using the remaining metrics (neutral and phylogenetic).**
+```{r}
 
-**3) Color the plots according to the groups defined in the sample metadata rather than by individual samples.**
+```
+
+**3) Color the beta diversity plots according to the groups defined in the sample metadata rather than by individual samples.**
 
     Note: This can only be completed once you have the sample metadata.
 
+```{r}
+
+```
 
