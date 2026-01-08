@@ -1,19 +1,17 @@
 # Functional capacity
 
-```{r load_data_catalogue, comment="", message=FALSE, warning=FALSE}
+```{r load_data_annotations, comment="", message=FALSE, warning=FALSE}
 load("resources/YOURDATA.Rdata")
 ```
 
-```{r}
+```{r annotations, comment="", message=FALSE, warning=FALSE}
 genome_annotations <- read_tsv("resources/kegg_merged.tsv")
 genome_gifts_raw <- distill(genome_annotations,GIFT_db,genomecol=1,annotcol=c(3), verbosity=F)
-genome_counts_filt_func <- genome_counts_filt[genome_counts_filt$genome %in% rownames(genome_gifts_raw),]
-genome_gifts <- genome_gifts_raw[genome_counts_filt_func$genome,]
 genome_gifts <- genome_gifts[, colSums(genome_gifts != 0) > 0]
 ```
 
 ## Functional overview
-```{r function_heatmap, message=FALSE, warning=FALSE, fig.height=10, fig.width=10, fig.fullwidth=TRUE}
+```{r function_heatmap, comment="", message=FALSE, warning=FALSE, fig.height=10, fig.width=10, fig.fullwidth=TRUE}
 phylum_heatmap <- read_tsv("https://raw.githubusercontent.com/earthhologenome/EHI_taxonomy_colour/main/ehi_phylum_colors.tsv") %>%
     right_join(genome_metadata, by=join_by(phylum == phylum)) %>%
     arrange(match(genome, genome_tree$tip.label)) %>%
@@ -65,35 +63,32 @@ function_tree
 
 ## Functional ordination
 
-```{r function_ordination, message=FALSE, fig.height=8, fig.width=14, fig.fullwidth=TRUE}
+```{r function_ordination, comment="", message=FALSE, warning=FALSE, fig.height=8, fig.width=14, fig.fullwidth=TRUE}
 library(Rtsne)
 # Generate the tSNE ordination
 tSNE_function <- Rtsne(X=function_table, dims = 2, check_duplicates = FALSE, perplexity = 5)
 
 # Plot the ordination
-function_ordination <- tSNE_function$Y %>%
-                as.data.frame() %>%
-                mutate(genome=rownames(function_table)) %>%
-                inner_join(genome_metadata, by="genome") %>%
-                rename(tSNE1="V1", tSNE2="V2") %>%
-                dplyr::select(genome,phylum,tSNE1,tSNE2, length) %>%
-                ggplot(aes(x = tSNE1, y = tSNE2, color = phylum, size=length))+
-                            geom_point(shape=16, alpha=0.7) +
-                            scale_color_manual(values=phylum_colors) +
-                            theme_minimal() +
-                labs(color="Phylum", size="Genome size") +
-                guides(color = guide_legend(override.aes = list(size = 5)))
-
-function_ordination
+tSNE_function$Y %>%
+  as.data.frame() %>%
+  mutate(genome = rownames(function_table)) %>%
+  inner_join(genome_metadata, by = "genome") %>%
+  rename(tSNE1 = "V1", tSNE2 = "V2") %>%
+  dplyr::select(genome, phylum, tSNE1, tSNE2, length) %>%
+  ggplot(aes(x = tSNE1, y = tSNE2, color = phylum, size = length)) +
+  geom_point(shape = 16, alpha = 0.7) +
+  scale_color_manual(values = phylum_colors) +
+  theme_minimal() +
+  labs(color = "Phylum", size = "Genome size") +
+  guides(color = guide_legend(override.aes = list(size = 5)))
 ```
 
-```{r}
+```{r gifts, comment="", message=FALSE, warning=FALSE}
 GIFTs_elements <- to.elements(genome_gifts,GIFT_db)
 genome_counts_row <- genome_counts_filt %>%
   mutate_at(vars(-genome),~./sum(.)) %>% 
   column_to_rownames(., "genome") 
 GIFTs_elements_community <- to.community(GIFTs_elements,genome_counts_row,GIFT_db)
-
 ```
 
 ```{r comunity_elem_plot, comment="", message=FALSE, warning=FALSE, fig.height=16, fig.width=10, fig.fullwidth=TRUE}
@@ -124,7 +119,7 @@ GIFTs_elements_community %>%
         labs(y="Traits",x="Samples",fill="GIFT")
 ```
 
-```{r gitfs_mci}
+```{r gitfs_functional_wild_mci, comment="", message=FALSE, warning=FALSE, message=FALSE, warning=FALSE}
 GIFTs_elements_community %>%
   rowMeans() %>%
   as_tibble(., rownames = "sample") %>%
