@@ -2,6 +2,14 @@
 
 ```{r load_data_annotations, comment="", message=FALSE, warning=FALSE}
 load("resources/YOURDATA.Rdata")
+library(distillR)
+library(tidyverse)
+library(ggtree)
+library(phytools)
+library(ggnewscale)
+library(ggtreeExtra)
+library(tinytable)
+library(Rtsne)
 ```
 
 ```{r annotations, comment="", message=FALSE, warning=FALSE}
@@ -64,7 +72,6 @@ function_tree
 ## Functional ordination
 
 ```{r function_ordination, comment="", message=FALSE, warning=FALSE, fig.height=8, fig.width=14, fig.fullwidth=TRUE}
-library(Rtsne)
 # Generate the tSNE ordination
 tSNE_function <- Rtsne(X=function_table, dims = 2, check_duplicates = FALSE, perplexity = 5)
 
