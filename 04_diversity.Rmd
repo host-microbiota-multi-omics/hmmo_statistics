@@ -6,6 +6,7 @@ library(tidyverse)
 library(tinytable)
 library(hilldiv2)
 library(ggrepel)
+library(vegan)
 ```
 
 ## Load and filter the data
@@ -120,6 +121,34 @@ beta_q0n$S %>%
       legend.position = "right", legend.box = "vertical"
     )
 ```
+
+**Permanova**
+
+```{r meta_row, comment="", message=FALSE, warning=FALSE}
+sample_metadata_row <- column_to_rownames(sample_metadata, "sample") 
+```
+
+***Richness***
+```{r permanova_q0, comment="", message=FALSE, warning=FALSE}
+betadisper(beta_q0n$S, sample_metadata$VARIABLE) %>% permutest(., pairwise = TRUE) 
+
+adonis2(beta_q0n$S ~ VARIABLE,
+  data = sample_metadata %>% arrange(match(sample, labels(beta_q0n$S))),
+  permutations = 999, by="terms"
+) %>%
+  broom::tidy() %>%
+  tt()
+```
+
+```{r permanova_q0_random, comment="", message=FALSE, warning=FALSE}
+adonis2(beta_q0n$S ~ VARIABLE,
+  data = infected_metadata %>% arrange(match(sample, labels(beta_q1n$S))),
+  permutations = 999, by="terms", strata = sample_metadata$RANDOMEFFECT) %>%
+  broom::tidy() %>%
+  tt()
+```
+
+
 
 ## Exercise:
 
