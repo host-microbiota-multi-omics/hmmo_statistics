@@ -149,7 +149,6 @@ adonis2(beta_q0n$S ~ VARIABLE,
 ```
 
 
-
 ## Exercise:
 
 **1) Modify the alpha-diversity plot code to group samples according to your study design. To do this, you will need:**
