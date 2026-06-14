@@ -2,6 +2,12 @@
 
 This repository contains the code used to analyse data generated in the Host–Microbiota Multi-omics course.
 
+## Getting ready
+
+The first step to begin with statistical analysis is to install R and RStudio on your laptop.
+
+Find more information about the installation here: https://rstudio-education.github.io/hopr/starting.html
+
 ## Repository structure
 
 The analysis workflow is organised into the following steps:
